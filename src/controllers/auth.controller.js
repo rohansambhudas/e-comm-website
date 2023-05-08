@@ -9,6 +9,14 @@ export const cookieOptions = {
     httpOnly: true
 }
 
+
+/*******************************************************
+ * @SIGNUP
+ * @route http://localhost:5000/api/auth/signup
+ * @description User signUp Controller for creating new user
+ * @returns User Object
+ *********************************************************/
+
 export const signUp = asyncHandler(async (req, res) => {
     // get data from user
 
@@ -49,5 +57,47 @@ export const signUp = asyncHandler(async (req, res) => {
         success: true,
         token,
         user
+    })
+})
+
+export const login = asyncHandler(async (req, res) => {
+    const {email, password} = res.body
+
+    // validation
+    if (!email || !password) {
+        throw new CustomError("Please fill all details", 400)
+    }
+
+    const user = User.findOne({email}).select("+password")
+
+    if (!user) {
+        throw new CustomError("Invalid Credentials", 400)
+    }
+
+    const isPasswordMatched = await user.comparePassword(password)
+
+    if (isPasswordMatched) {
+        const token = user.getJWTtoken()
+        user.password = undefined
+        res.cookie("token", token, cookieOptions)
+        return res.status(200).json({
+            success: true,
+            token,
+            user
+        })
+    }
+
+    throw new CustomError("Password is incorrect", 400)
+})
+
+export const logout = asyncHandler(async (req, res) => {
+    res.cookie("token", null, {
+        expires: new Date(Date.now()),
+        httpOnly: true
+    })
+
+    res.status(200).json({
+        success: true,
+        message: "Logged Out"
     })
 })
